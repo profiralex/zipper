@@ -23,7 +23,7 @@ type Provider interface {
 // if strict parameter is true then the process stops if loader cannot find a key and
 // no default value provided
 func Load(model interface{}, provider Provider, strict bool) error {
-	return load(&model, provider, strict)
+	return load(model, provider, strict)
 }
 
 func load(model interface{}, provider Provider, strict bool) error {
@@ -61,7 +61,7 @@ func load(model interface{}, provider Provider, strict bool) error {
 			value = defaultValue
 		}
 
-		err = assignValue(&valueField, &typeField, value)
+		err = assignValue(&v, &typeField, value)
 		if err != nil {
 			return fmt.Errorf("Unable to set value for field %s: %w", typeField.Name, err)
 		}
@@ -70,16 +70,16 @@ func load(model interface{}, provider Provider, strict bool) error {
 	return nil
 }
 
-func assignValue(field *reflect.Value, typeField *reflect.StructField, value string) error {
+func assignValue(reflectValue *reflect.Value, typeField *reflect.StructField, value string) error {
 	switch typeField.Type.Kind() {
 	case reflect.String:
-		field.FieldByIndex(typeField.Index).SetString(value)
+		reflectValue.FieldByIndex(typeField.Index).SetString(value)
 	case reflect.Bool:
 		value, err := strconv.ParseBool(value)
 		if err != nil {
 			return err
 		}
-		field.FieldByIndex(typeField.Index).SetBool(value)
+		reflectValue.FieldByIndex(typeField.Index).SetBool(value)
 	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
@@ -89,24 +89,25 @@ func assignValue(field *reflect.Value, typeField *reflect.StructField, value str
 		if err != nil {
 			return err
 		}
-		field.FieldByIndex(typeField.Index).SetInt(value)
+		reflectValue.FieldByIndex(typeField.Index).SetInt(value)
 	case reflect.Uint,
 		reflect.Uint8,
 		reflect.Uint16,
 		reflect.Uint32,
-		reflect.Uint64,
-		reflect.Uintptr:
+		reflect.Uint64:
 		value, err := strconv.ParseUint(value, 10, 64)
 		if err != nil {
 			return err
 		}
-		field.FieldByIndex(typeField.Index).SetUint(value)
+		reflectValue.FieldByIndex(typeField.Index).SetUint(value)
 	case reflect.Float32, reflect.Float64:
 		value, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err
 		}
-		field.FieldByIndex(typeField.Index).SetFloat(value)
+		reflectValue.FieldByIndex(typeField.Index).SetFloat(value)
+	default:
+		return fmt.Errorf("Could not set value for %s type", typeField.Type.Name())
 	}
 	return nil
 }
